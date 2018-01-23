@@ -1,0 +1,33 @@
+buildscript {
+  ext.kotlin_version = '1.1.4-3'
+  repositories {
+    mavenCentral()
+	maven { url "https://jitpack.io" }
+  }
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+
+sourceSets.main.java.srcDirs = ['src']
+mainClassName = 'abidecoder.DecoderKt'
+
+defaultTasks 'run'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  compile ('org.web3j:core:3.2.0')
+  testCompile 'junit:junit:4.11'
+  testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+}
+
+task wrapper(type: Wrapper) {
+  gradleVersion = "4.1"
+}
