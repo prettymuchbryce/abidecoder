@@ -15,4 +15,4 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'riff-kotlin'
+rootProject.name = 'abidecoder'

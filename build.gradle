@@ -18,12 +18,14 @@ mainClassName = 'abidecoder.DecoderKt'
 defaultTasks 'run'
 
 repositories {
+  jcenter()
   mavenCentral()
 }
 
 dependencies {
   compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  compile ('org.web3j:core:3.2.0')
+  compile 'org.web3j:core:3.2.0'
+  compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"
   testCompile 'junit:junit:4.11'
   testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
 }
