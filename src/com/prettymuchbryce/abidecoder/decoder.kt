@@ -4,6 +4,11 @@ import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.methods.response.AbiDefinition
 import org.web3j.protocol.http.HttpService
 import com.fasterxml.jackson.module.kotlin.*
+import org.web3j.abi.FunctionEncoder
+import org.web3j.abi.datatypes.Type
+import java.util.stream.Collectors
+import org.web3j.utils.Numeric
+import org.web3j.crypto.Hash
 
 fun main(args: Array<String>) {
 	var web3: Web3j = Web3j.build(HttpService())
@@ -20,22 +25,67 @@ fun main(args: Array<String>) {
 	println(contracts[0].getName())
 }
 
+fun decodeParams(types: List<String>, 
+
+/*
+SolidityCoder.prototype.decodeParams = function (types, bytes) {
+    var solidityTypes = this.getSolidityTypes(types);
+    var offsets = this.getOffsets(types, solidityTypes);
+
+    return solidityTypes.map(function (solidityType, index) {
+        return solidityType.decode(bytes, offsets[index],  types[index], index);
+    });
+};
+*/
+
+
+
 class Decoder constructor() {
-	private val _savedAbis = mutableListOf<AbiDefinition>()
-	private val _methodIDs: HashMap<String, AbiDefinition> = HashMap()
+	val _savedAbis = mutableListOf<AbiDefinition>()
+	val _methodIDs: HashMap<String, AbiDefinition> = HashMap()
 	
+	/*
 	fun getAbis(): List<AbiDefinition> {
+	}*/
+
+	fun buildMethodSignature(methodName: String, parameters: List<AbiDefinition.NamedType>): String {
+        val result = StringBuilder()
+        result.append(methodName);
+        result.append("(");
+        val params = parameters.stream()
+                .map(AbiDefinition.NamedType::getTypeAsString)
+                .collect(Collectors.joining(","));
+        result.append(params);
+        result.append(")");
+        return result.toString();
 	}
 
-	fun addAbi (abis: List<AbiDefinition>) {
-	
+    fun buildMethodId(methodSignature: String): String {
+        val input = methodSignature.toByteArray();
+        val hash = Hash.sha3(input);
+        return Numeric.toHexString(hash).substring(0, 10);
+    }
+
+	public fun addAbi (abis: List<AbiDefinition>) {
+		for (abi in abis) {
+			if (abi.getName() != null) {
+				val methodSignature = buildMethodSignature(abi.getName(), abi.getInputs())
+				if (abi.getType() == "event") {
+					_methodIDs[methodSignature.slice(2)] = abi
+				} else {
+					_methodIDs[methodSignature.slice(2, 10)] = abi
+				}
+			}
+		}
+		abis[0].	
+		abis.
 	}
 
-	fun getMethodIDs(): Map<String, AbiDefinition> {
+	public fun getMethodIDs(): Map<String, AbiDefinition> {
 		return _methodIDs	
 	}
 
-	fun decodeMethod() { }
+	fun decodeMethod(data: String) { }
 	fun decodeLogs() { }
 	fun removeABI() { }
 }
