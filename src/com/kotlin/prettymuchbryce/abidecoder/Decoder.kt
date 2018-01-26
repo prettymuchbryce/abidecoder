@@ -1,4 +1,4 @@
-package abidecoder
+package com.prettymuchbryce.abidecoder 
 
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.methods.response.AbiDefinition
@@ -25,7 +25,7 @@ fun main(args: Array<String>) {
 	println(contracts[0].getName())
 }
 
-fun decodeParams(types: List<String>, 
+// fun decodeParams(types: List<String>, 
 
 /*
 SolidityCoder.prototype.decodeParams = function (types, bytes) {
@@ -38,55 +38,51 @@ SolidityCoder.prototype.decodeParams = function (types, bytes) {
 };
 */
 
-
-
-class Decoder constructor() {
+class Decoder {
 	val _savedAbis = mutableListOf<AbiDefinition>()
 	val _methodIDs: HashMap<String, AbiDefinition> = HashMap()
 	
-	/*
-	fun getAbis(): List<AbiDefinition> {
-	}*/
-
-	fun buildMethodSignature(methodName: String, parameters: List<AbiDefinition.NamedType>): String {
+	private fun buildMethodSignature(methodName: String, parameters: List<AbiDefinition.NamedType>): String {
         val result = StringBuilder()
         result.append(methodName);
         result.append("(");
         val params = parameters.stream()
-                .map(AbiDefinition.NamedType::getTypeAsString)
+                .map{t -> t.getType()}
                 .collect(Collectors.joining(","));
         result.append(params);
         result.append(")");
-        return result.toString();
+		val bytes = result.toString().toByteArray()
+		val hash = Hash.sha3(bytes)
+		return Numeric.toHexString(hash)
 	}
 
-    fun buildMethodId(methodSignature: String): String {
+    private fun buildMethodId(methodSignature: String): String {
         val input = methodSignature.toByteArray();
         val hash = Hash.sha3(input);
         return Numeric.toHexString(hash).substring(0, 10);
     }
 
-	public fun addAbi (abis: List<AbiDefinition>) {
+	fun addAbi (abis: List<AbiDefinition>) {
 		for (abi in abis) {
 			if (abi.getName() != null) {
 				val methodSignature = buildMethodSignature(abi.getName(), abi.getInputs())
 				if (abi.getType() == "event") {
-					_methodIDs[methodSignature.slice(2)] = abi
+					_methodIDs[methodSignature.substring(0, 2)] = abi
 				} else {
-					_methodIDs[methodSignature.slice(2, 10)] = abi
+					_methodIDs[methodSignature.substring(2, 10)] = abi
 				}
 			}
 		}
-		abis[0].	
-		abis.
+
+		_savedAbis.addAll(abis)
 	}
 
-	public fun getMethodIDs(): Map<String, AbiDefinition> {
+	fun getAbis(): List<AbiDefinition> {
+		return _savedAbis
+	}
+
+	fun getMethodIDs(): Map<String, AbiDefinition> {
 		return _methodIDs	
 	}
-
-	fun decodeMethod(data: String) { }
-	fun decodeLogs() { }
-	fun removeABI() { }
 }
 
