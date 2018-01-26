@@ -14,6 +14,13 @@ var contracts: List<AbiDefinition> = mapper.readValue<List<AbiDefinition>>(testA
 
 class DecoderTests {
 	@Test
+	fun getAbis() {
+		val decoder = Decoder()
+		val abis = decoder.getAbis()
+		assertEquals(0, abis.size)
+	}
+
+	@Test
 	fun addAbis() {
 		val decoder = Decoder()
 		decoder.addAbi(contracts)
