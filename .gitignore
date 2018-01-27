@@ -1,4 +1,5 @@
 build/
+*.class
 .DS_Store
 META-INF/
 .gradle/
