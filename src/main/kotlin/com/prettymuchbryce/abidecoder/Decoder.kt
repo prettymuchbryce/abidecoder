@@ -2,26 +2,8 @@ package com.prettymuchbryce.abidecoder
 
 import com.fasterxml.jackson.module.kotlin.*
 import org.spongycastle.util.encoders.Hex
-import org.ethereum.vm.trace.Serializers
-
-/*
-import org.web3j.abi.Utils;
-import org.web3j.abi.FunctionEncoder
-import org.web3j.abi.FunctionReturnDecoder
-import org.web3j.abi.TypeDecoder
-import org.web3j.abi.datatypes.Type
-import org.web3j.abi.datatypes.generated.AbiTypes
-*/
-
+import org.ethereum.vm.LogInfo
 import org.ethereum.solidity.Abi
-
-import java.util.stream.Collectors
-
-fun main(args: Array<String>) {
-	val json = """
-			[{"inputs": [{"type": "address", "name": ""}], "constant": true, "name": "isInstantiation", "payable": false, "outputs": [{"type": "bool", "name": ""}], "type": "function"}, {"inputs": [{"type": "address[]", "name": "_owners"}, {"type": "uint256", "name": "_required"}, {"type": "uint256", "name": "_dailyLimit"}], "constant": false, "name": "create", "payable": false, "outputs": [{"type": "address", "name": "wallet"}], "type": "function"}, {"inputs": [{"type": "address", "name": ""}, {"type": "uint256", "name": ""}], "constant": true, "name": "instantiations", "payable": false, "outputs": [{"type": "address", "name": ""}], "type": "function"}, {"inputs": [{"type": "address", "name": "creator"}], "constant": true, "name": "getInstantiationCount", "payable": false, "outputs": [{"type": "uint256", "name": ""}], "type": "function"}, {"inputs": [{"indexed": false, "type": "address", "name": "sender"}, {"indexed": false, "type": "address", "name": "instantiation"}], "type": "event", "name": "ContractInstantiation", "anonymous": false}]
-		"""
-}
 
 class Decoder {
 	val _savedAbis = mutableListOf<Abi.Entry>()
@@ -30,6 +12,18 @@ class Decoder {
 	data class DecodedMethod (
 		val name: String,
 		val params: List<Param>
+	)
+
+	data class Log (
+		val data: String,
+		val topics: List<String>,
+		val address: String
+	)
+
+	data class DecodedLog (
+		val name: String,
+		val address: String,
+		val events: List<Param>
 	)
 
 	data class Param (
@@ -41,6 +35,9 @@ class Decoder {
 	fun addAbi (json: String) {
 		val abi: Abi = Abi.fromJson(json)
 		for (entry in abi) {
+			if (entry == null) {
+				continue
+			}
 			if (entry.name != null) {
 				val methodSignature = entry.encodeSignature()
 				_methodIDs[Hex.toHexString(methodSignature)] = entry
@@ -57,6 +54,20 @@ class Decoder {
 		return _methodIDs	
 	}
 
+	fun removeAbi (json: String) {
+		val abi: Abi = Abi.fromJson(json)
+		for (entry in abi) {
+			if (entry == null) {
+				continue
+			}
+			if (entry.name != null) {
+				val methodSignature = entry.encodeSignature()
+				_methodIDs.remove(Hex.toHexString(methodSignature))
+			}
+			_savedAbis.remove(entry)
+		}
+	}
+
 	fun decodeMethod(data: String): DecodedMethod? {
 		val noPrefix = data.removePrefix("0x")
 		val bytes = Hex.decode(noPrefix.toUpperCase())
@@ -68,7 +79,6 @@ class Decoder {
 			for (i in decoded.indices) {
 				val name = entry.inputs[i].name
 				val type = entry.inputs[i].type.toString()
-				// val value = Serializers.serializeFieldsOnly(decoded[i]!!, true)
 				val value = decoded[i]!!
 				val param = Param(name, type, value)
 				params.add(param)
@@ -77,63 +87,59 @@ class Decoder {
 		}
 		return null
 	}
+
+	fun padZeros (address: String): String {
+	  var formatted = address.removePrefix("0x")
+
+	  if (formatted.length < 40) {
+		while (formatted.length < 40) formatted = "0" + formatted;
+	  }
+
+	  return "0x" + formatted;
+	};
+
+	fun decodeLogs(data: String): List<DecodedLog> {
+		val logs: List<Log> = jacksonObjectMapper().readValue(data)
+		val result = mutableListOf<DecodedLog>()
+		for (log in logs) {
+			val noPrefix = log.data.removePrefix("0x")
+			val bytes = Hex.decode(noPrefix.toUpperCase())
+			val methodID = log.topics[0].removePrefix("0x")
+			val methodBytes = Hex.decode(methodID.toUpperCase())
+			val entry = _methodIDs[Hex.toHexString(methodBytes)]
+			if (entry != null) {
+				val nonindexedInputs = mutableListOf<Abi.Entry.Param>()
+				for (input in entry.inputs) {
+					if (!input.indexed) {
+						nonindexedInputs.add(input)
+					}
+				}
+				val decodedParams = mutableListOf<Param>()
+				var dataIndex = 0
+				var topicsIndex = 1
+
+				for (i in entry.inputs.indices) {
+					val input = entry.inputs[i]
+					var param: Param? = null
+						
+					if (input.indexed) {
+						val topic = log.topics[topicsIndex].removePrefix("0x")
+						val topicBytes = Hex.decode(topic.toUpperCase())
+						val decoded = Abi.Entry.Param.decodeList(mutableListOf<Abi.Entry.Param>(input), topicBytes)
+						param = Param(input.name, input.type.toString(), decoded[0]!!)
+						topicsIndex++
+					} else {
+						val decoded = Abi.Entry.Param.decodeList(nonindexedInputs, bytes)
+						param = Param(input.name, input.type.toString(), decoded[dataIndex]!!)
+						dataIndex++
+					}
+					decodedParams.add(param!!)
+				}
+
+				val decodedLog = DecodedLog(entry.name, log.address, decodedParams)
+				result.add(decodedLog)	
+			}
+		}
+		return result
+	}
 }
-
-/**
-
-    const testData = "0x53d9d9100000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000a6d9c5f7d4de3cef51ad3b7235d79ccc95114de5000000000000000000000000a6d9c5f7d4de3cef51ad3b7235d79ccc95114daa";
-
-
-function _decodeMethod(data) {
-  const methodID = data.slice(2, 10);
-  const abiItem = state.methodIDs[methodID];
-  if (abiItem) {
-    const params = abiItem.inputs.map((item) => item.type);
-    let decoded = SolidityCoder.decodeParams(params, data.slice(10));
-    return {
-      name: abiItem.name,
-      params: decoded.map((param, index) => {
-        let parsedParam = param;
-        if (abiItem.inputs[index].type.indexOf("uint") !== -1) {
-          parsedParam = new Web3().toBigNumber(param).toString();
-        }
-        return {
-          name: abiItem.inputs[index].name,
-          value: parsedParam,
-          type: abiItem.inputs[index].type
-        };
-      })
-    }
-  }
-}
-
-
-
-SolidityCoder.prototype.decodeParams = function (types, bytes) {
-    var solidityTypes = this.getSolidityTypes(types);
-    var offsets = this.getOffsets(types, solidityTypes);
-
-    return solidityTypes.map(function (solidityType, index) {
-        return solidityType.decode(bytes, offsets[index],  types[index], index);
-    });
-};
-
-
-SolidityCoder.prototype.getOffsets = function (types, solidityTypes) {
-    var lengths =  solidityTypes.map(function (solidityType, index) {
-        return solidityType.staticPartLength(types[index]);
-    });
-
-    for (var i = 1; i < lengths.length; i++) {
-         // sum with length of previous element
-        lengths[i] += lengths[i - 1];
-    }
-
-    return lengths.map(function (length, index) {
-        // remove the current length, so the length is sum of previous elements
-        var staticPartLength = solidityTypes[index].staticPartLength(types[index]);
-        return length - staticPartLength;
-    });
-};
-
-**/
