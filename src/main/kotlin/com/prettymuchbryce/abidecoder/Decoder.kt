@@ -120,7 +120,7 @@ class Decoder {
 
 				for (i in entry.inputs.indices) {
 					val input = entry.inputs[i]
-					var param: Param? = null
+					var param: Param?
 						
 					if (input.indexed) {
 						val topic = log.topics[topicsIndex].removePrefix("0x")
@@ -133,7 +133,7 @@ class Decoder {
 						param = Param(input.name, input.type.toString(), decoded[dataIndex]!!)
 						dataIndex++
 					}
-					decodedParams.add(param!!)
+					decodedParams.add(param)
 				}
 
 				val decodedLog = DecodedLog(entry.name, log.address, decodedParams)
