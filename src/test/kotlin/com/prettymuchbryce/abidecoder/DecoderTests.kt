@@ -102,8 +102,6 @@ class DecoderTests {
 		assertEquals("0x0457874Bb0a346962128a0C01310d00Fc5bb6a81", decodedLogs[0].address)
 
 		assertEquals("sender", decodedLogs[0].events[0].name)
-		print("what is it?")
-		print(decodedLogs[0].events[0].value)
 		assertEquals("0x05039084cc6f4773291a6ed7dcf5bc3a2e894ff3", "0x" + Hex.toHexString(decodedLogs[0].events[0].value as ByteArray))
 		assertEquals("address", decodedLogs[0].events[0].type)
 
