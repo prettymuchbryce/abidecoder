@@ -38,12 +38,12 @@ package main;
 import com.prettymuchbryce.abidecoder.Decoder;
 
 public class Main {
-  public static void main(String[] args) {
-	Decoder d = new Decoder();
-	d.addAbi(myAbiJsonString);
-	Decoder.DecodedMethod result = d.decodeMethod(methodData);
-	System.out.print(result);
-  }
+	public static void main(String[] args) {
+		Decoder d = new Decoder();
+		d.addAbi(myAbiJsonString);
+		Decoder.DecodedMethod result = d.decodeMethod(methodData);
+		System.out.print(result);
+	}
 }
 ```
 
